@@ -1,6 +1,6 @@
 import jwt from "jsonwebtoken";
 import User from "../app/user/models.js";
-import { getToken, policyFor } from "../utils/index.js";
+import { getToken } from "../utils/index.js";
 import config_env from "../app/config.js";
 
 export function decodeToken() {
@@ -24,18 +24,5 @@ export function decodeToken() {
       next(error);
     }
     return next();
-  };
-}
-
-export function policy_check(action, subject) {
-  return function (req, res, next) {
-    const policy = policyFor(req.user);
-    if (!policy.can(action, subject)) {
-      return res.status(403).json({
-        errorNumber: 1,
-        message: `You are not allowed to ${action} ${subject}`,
-      });
-    }
-    next();
   };
 }

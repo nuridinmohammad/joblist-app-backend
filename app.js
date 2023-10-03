@@ -6,14 +6,8 @@ import logger from "morgan";
 import cors from "cors";
 
 import indexRouter from "./routes/index.js";
-import productRoutes from "./app/product/router.js";
-import categoryRoutes from "./app/category/router.js";
-import tagRoutes from "./app/tag/router.js";
+import positionsRoutes from "./app/positions/router.js";
 import authRoutes from "./app/auth/routes.js";
-import deliveryAddressRouter from "./app/deliveryAddress/router.js";
-import cartRoutes from "./app/cart/router.js";
-import orderRoutes from "./app/order/router.js";
-import invoiceRoutes from './app/invoice/router.js' 
 import { decodeToken } from "./middlewares/index.js";
 
 const app = express();
@@ -37,14 +31,8 @@ app.use("/", indexRouter);
 // route auth
 app.use("/auth", authRoutes);
 
-//route main data
-app.use("/api", productRoutes);
-app.use("/api", categoryRoutes);
-app.use("/api", tagRoutes);
-app.use("/api", deliveryAddressRouter);
-app.use("/api", cartRoutes);
-app.use("/api", orderRoutes);
-app.use("/api", invoiceRoutes);
+//route positions
+app.use("/api/recruitment", positionsRoutes);
 
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {

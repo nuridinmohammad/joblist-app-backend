@@ -2,40 +2,12 @@ import path from "path";
 import fs from "fs";
 
 import config_env from "../config.js";
-import Product from "./models.js";
-import Category from "../category/models.js";
-import Tag from "../tag/models.js";
+import Positions from "./models.js";
 
-const productController = {
-  // store product
+const positionsController = {
   store: async (req, res, next) => {
     try {
       let payload = req.body;
-
-      if (payload.category) {
-        let category = await Category.findOne({
-          name: { $regex: payload.category, $options: "i" },
-        });
-
-        if (category) {
-          payload = { ...payload, category: category._id };
-        } else {
-          delete payload.category;
-        }
-      }
-
-      if (payload.tags && payload.tags.length > 0) {
-        let tags = await Tag.find({
-          name: { $in: payload.tags },
-        });
-
-        if (tags.length) {
-          payload = { ...payload, tags: tags.map((tag) => tag._id) };
-        } else {
-          delete payload.tags;
-        }
-      }
-
       if (req.file) {
         let tmp_path = req.file.path;
         let originalExt =
@@ -45,19 +17,22 @@ const productController = {
         let filename = req.file.filename + "." + originalExt;
         let target_path = path.resolve(
           config_env.rootPath,
-          `BACKEND/public/images/products/${filename}`
+          `BACKEND/public/images/positions/${filename}`
         );
         const src = fs.createReadStream(tmp_path);
         const dest = fs.createWriteStream(target_path);
         src.pipe(dest);
         src.on("end", async () => {
           try {
-            let product = new Product({ ...payload, image_url: filename });
-            await product.save();
-            return res.status(201).json(product);
+            let positions = new Positions({
+              ...payload,
+              company_logo: filename,
+            });
+            await positions.save();
+            return res.status(201).json(positions);
           } catch (error) {
             fs.unlinkSync(target_path);
-            if (err && err.name === "ValidationError") {
+            if (error && error.name === "ValidationError") {
               return res.status(400).json({
                 errorNumber: 1,
                 message: error.message,
@@ -72,9 +47,9 @@ const productController = {
           next(error);
         });
       } else {
-        let product = new Product(payload);
-        await product.save();
-        return res.status(201).json(product);
+        let positions = new Positions(payload);
+        await positions.save();
+        return res.status(201).json(positions);
       }
     } catch (error) {
       if (error && error.name === "ValidationError") {
@@ -91,31 +66,6 @@ const productController = {
     try {
       let payload = req.body;
       const { id } = req.params;
-
-      if (payload.category) {
-        let category = await Category.findOne({
-          name: { $regex: payload.category, $options: "i" },
-        });
-
-        if (category) {
-          payload = { ...payload, category: category._id };
-        } else {
-          delete payload.category;
-        }
-      }
-
-      if (payload.tags && payload.tags.length > 0) {
-        let tags = await Tag.find({
-          name: { $in: payload.tags },
-        });
-
-        if (tags.length) {
-          payload = { ...payload, tags: tags.map((tag) => tag._id) };
-        } else {
-          delete payload.tags;
-        }
-      }
-
       if (req.file) {
         let tmp_path = req.file.path;
         let originalExt =
@@ -125,29 +75,29 @@ const productController = {
         let filename = req.file.filename + "." + originalExt;
         let target_path = path.resolve(
           config_env.rootPath,
-          `BACKEND/public/images/products/${filename}`
+          `BACKEND/public/images/positions/${filename}`
         );
         const src = fs.createReadStream(tmp_path);
         const dest = fs.createWriteStream(target_path);
         src.pipe(dest);
         src.on("end", async () => {
           try {
-            const productById = await Product.findById(id);
-            const currentImage = `${config_env.rootPath}/BACKEND/public/images/products/${productById.image_url}`;
+            const positionsById = await Positions.findById(id);
+            const currentImage = `${config_env.rootPath}/BACKEND/public/images/positions/${positionsById.company_logo}`;
 
             if (fs.existsSync(currentImage)) {
               fs.unlinkSync(currentImage);
             }
 
-            const product = await Product.findByIdAndUpdate(id, payload, {
+            const positions = await Positions.findByIdAndUpdate(id, payload, {
               new: true,
               runValidators: true,
             });
-            await product.save();
-            return res.status(201).json(product);
+            await positions.save();
+            return res.status(201).json(positions);
           } catch (error) {
             fs.unlinkSync(target_path);
-            if (err && err.name === "ValidationError") {
+            if (error && error.name === "ValidationError") {
               return res.status(400).json({
                 errorNumber: 1,
                 message: error.message,
@@ -162,12 +112,12 @@ const productController = {
           next(error);
         });
       } else {
-        const product = await Product.findByIdAndUpdate(id, payload, {
+        const positions = await Positions.findByIdAndUpdate(id, payload, {
           new: true,
           runValidators: true,
         });
-        await product.save();
-        return res.status(201).json(product);
+        await positions.save();
+        return res.status(201).json(positions);
       }
     } catch (error) {
       if (error && error.name === "ValidationError") {
@@ -185,55 +135,55 @@ const productController = {
     try {
       const {
         skip = 0,
-        limit = 4,
-        q = "",
-        category = "",
-        tags = [],
+        limit = 0,
+        title = "",
+        description = "",
+        location = "",
+        type = "",
         page = 1,
       } = req.query;
       let criteria = {};
 
-      if (q.length) {
+      if (title.length) {
         criteria = {
           ...criteria,
-          name: { $regex: `${q}`, $options: "i" },
+          title: { $regex: `${title}`, $options: "i" },
         };
       }
 
-      if (category.length) {
-        let categoryResult = await Category.findOne({
-          name: { $regex: `${category}`, $options: "i" },
-        });
-        if (categoryResult) {
-          criteria = { ...criteria, category: categoryResult._id };
-        }
+      if (description.length) {
+        criteria = {
+          ...criteria,
+          description: { $regex: `${description}`, $options: "i" },
+        };
       }
 
-      if (tags.length) {
-        let tagsResult = await Tag.find({
-          name: { $in: tags },
-        });
-        if (tagsResult.length > 0) {
-          criteria = {
-            ...criteria,
-            tags: { $in: tagsResult.map((tag) => tag._id) },
-          };
-        }
+      if (location.length) {
+        criteria = {
+          ...criteria,
+          location: { $regex: `${location}`, $options: "i" },
+        };
       }
-      const totalData = await Product.find(criteria).count();
+
+      if (type) {
+        criteria = {
+          ...criteria,
+          type: true,
+        };
+      }
+
+      const totalData = await Positions.find(criteria).count();
       const totalPages = Math.ceil(Number(totalData) / Number(limit || 5));
-      const product = await Product.find(criteria)
+      const positions = await Positions.find(criteria)
         .skip(parseInt(skip))
-        .limit(parseInt(limit))
-        .populate("tags")
-        .populate("category");
+        .limit(parseInt(limit));
       return res.status(200).json({
         pagination: {
           page: Number(page),
           totalData,
           totalPages,
         },
-        data: product,
+        data: positions,
       });
     } catch (error) {
       if (error && error.name === "ValidationError") {
@@ -247,17 +197,34 @@ const productController = {
     }
   },
 
+  detail: async (req, res, next) => {
+    const { id } = req.params;
+    try {
+      const positions = await Positions.findById(id);
+      return res.status(200).json(positions);
+    } catch (error) {
+      if (error && error.name === "CastError") {
+        return res.status(400).json({
+          errorNumber: 1,
+          message: error.message,
+          fields: error.errors,
+        });
+      }
+      next(error);
+    }
+  },
+
   destroy: async (req, res, next) => {
     try {
-      const productById = await Product.findByIdAndDelete(req.params.id);
-      const currentImage = `${config_env.rootPath}/BACKEND/public/images/products/${productById.image_url}`;
+      const positionsById = await Positions.findByIdAndDelete(req.params.id);
+      const currentImage = `${config_env.rootPath}/BACKEND/public/images/positions/${positionsById.company_logo}`;
 
       if (fs.existsSync(currentImage)) {
         fs.unlinkSync(currentImage);
       }
       return res.status(200).json({
         response: "success delete",
-        productId: productById._id,
+        positions_id: positionsById._id,
       });
     } catch (error) {
       if (error && error.name === "ValidationError") {
@@ -272,4 +239,4 @@ const productController = {
   },
 };
 
-export default productController;
+export default positionsController;

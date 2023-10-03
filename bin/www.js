@@ -13,7 +13,7 @@ import db from "../database/index.js";
  * Get port from environment and store in Express.
  */
 
-const port = normalizePort("3000");
+const port = normalizePort("5000");
 app.set("port", port);
 
 /**
@@ -30,7 +30,7 @@ db.on("open", () => {
   server.listen(port);
   server.on("error", onError);
   server.on("listening", onListening);
-  console.log("Connected!");
+  console.log(`Server running at ${port}\nHas been connected to jobsDB`);
 });
 
 /**

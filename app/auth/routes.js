@@ -6,7 +6,7 @@ import authController from "./controller.js";
 
 const router = express();
 const localStrategy = new PassportLocal(
-  { usernameField: "email" },
+  { usernameField: "username" },
   authController.localStrategy
 );
 

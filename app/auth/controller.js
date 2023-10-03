@@ -3,7 +3,6 @@ import passport from "passport";
 import jsonwebtoken from "jsonwebtoken";
 
 import config from "../config.js";
-import AutoIncrement from "../user/auto_increment.js";
 import User from "../user/models.js";
 import { getToken } from "../../utils/index.js";
 
@@ -11,16 +10,7 @@ const authController = {
   register: async (req, res, next) => {
     try {
       const payload = req.body;
-      const autoIncrement = await AutoIncrement.findOneAndUpdate(
-        { id: "customer_id" },
-        { $inc: { seq: 1 } },
-        { new: true }
-      );
-      const result = {
-        ...payload,
-        customer_id: autoIncrement.seq,
-      };
-      const user = await User(result);
+      const user = await User(payload);
       await user.save();
       return res.status(201).json(user);
     } catch (error) {
@@ -34,15 +24,14 @@ const authController = {
       next(error);
     }
   },
-  localStrategy: async (email, password, done) => {
+  localStrategy: async (username, password, done) => {
     try {
-      const user = await User.findOne({ email }).select(
-        "-__v -createAt -updateAt -cart_items -token"
+      const user = await User.findOne({ username }).select(
+        "-__v -createAt -updateAt -token"
       );
       if (!user) return done();
       if (bcrypt.compareSync(password, user.password)) {
         const { password, ...userWithoutPassword } = user.toJSON();
-        // ({ password, ...userWithoutPassword } = user.toJSON());
         return done(null, userWithoutPassword);
       }
     } catch (error) {
@@ -56,7 +45,7 @@ const authController = {
       if (!user) {
         return res.status(401).json({
           errorNumber: 1,
-          message: "Email or Password incorrect",
+          message: "Username or Password incorrect",
         });
       }
 
@@ -88,12 +77,12 @@ const authController = {
   },
   me: async (req, res, next) => {
     if (!req.user) {
-      res.status(401).json({
+      return res.status(401).json({
         errorNumber: 1,
         message: "Anda sedang tidak login atau token expired",
       });
     }
-    res.status(200).json({ response: "Sedang Login", data: req.user });
+    return res.status(200).json({ response: "Sedang Login", data: req.user });
   },
 };
 
